@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimization Engine | Nexus</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-hidden">
+
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/5 blur-[120px] pointer-events-none -z-10"></div>
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300" onclick="closeDrawer()"></div>
+    <div id="data-drawer" role="dialog" aria-modal="true" class="fixed top-0 right-0 h-full w-[450px] bg-[#0A0A0A] border-l border-gray-500/20 z-50 transform translate-x-full transition-transform duration-300 ease-in-out shadow-2xl flex flex-col">
+        <div class="p-6 border-b border-gray-500/20 flex justify-between items-center bg-[#050505]">
+            <div><h2 id="drawer-title" class="text-lg font-semibold text-white">Algorithm Payload</h2><p id="drawer-paradigm" class="text-xs text-[#888] font-mono mt-1"></p></div>
+            <div class="flex gap-2">
+                <button onclick="copyPayload()" class="p-2 rounded-full hover:bg-gray-500/20 transition-colors focus:outline-none" aria-label="Copy JSON"><i data-lucide="copy" class="w-4 h-4 opacity-70"></i></button>
+                <button onclick="closeDrawer()" id="drawer-close-btn" class="p-2 rounded-full hover:bg-gray-500/20 transition-colors focus:outline-none"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+        </div>
+        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="inner-panel p-4 rounded-xl"><span class="block text-[10px] uppercase opacity-60 mb-1">Items Loaded</span><span id="drawer-count" class="font-mono text-xl font-semibold">0</span></div>
+                <div class="inner-panel p-4 rounded-xl"><span class="block text-[10px] uppercase opacity-60 mb-1">Total Weight</span><span id="drawer-weight" class="font-mono text-xl font-semibold">0</span></div>
+            </div>
+            <h3 class="text-xs font-semibold uppercase opacity-60 mb-3 tracking-wider">Payload Breakdown</h3>
+            <table class="w-full text-left text-xs tabular-nums font-mono border-collapse" id="drawer-table">
+                <thead><tr class="border-b border-gray-500/20 opacity-70"><th class="pb-2">ID</th><th class="pb-2">Weight</th><th class="pb-2">Value</th></tr></thead>
+                <tbody id="drawer-body" class="divide-y divide-gray-500/10"></tbody>
+            </table>
+            <div tabindex="0" id="drawer-focus-trap"></div>
+        </div>
+    </div>
+
+    <div class="w-full max-w-[1500px] mx-auto space-y-6">
+        <header class="flex flex-col md:flex-row md:items-end justify-between border-b border-gray-500/20 pb-6 transition-colors">
+            <div>
+                <div class="flex items-center gap-3 mb-1"><i data-lucide="command" class="w-5 h-5 text-blue-500"></i><h1 class="text-xl font-medium tracking-tight">Optimization Engine</h1></div>
+                <p class="text-sm opacity-70">Enterprise 0/1 Knapsack Benchmarking</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center gap-4">
+                <button onclick="copyDeepLink()" class="p-2 rounded-full hover:bg-gray-500/10 transition-colors" title="Copy Deep Link URL"><i data-lucide="link" class="w-4 h-4 opacity-70"></i></button>
+                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-500/10 transition-colors"><i data-lucide="moon" id="themeIcon" class="w-4 h-4 opacity-70"></i></button>
+                <div class="flex items-center gap-2 text-xs font-mono opacity-70 inner-panel px-3 py-1.5 rounded-full"><div class="status-dot bg-ok"></div>Worker Thread Active</div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <section class="xl:col-span-3 flex flex-col gap-6">
+                <!-- Controls & CSV Dropzone -->
+                <div class="panel rounded-xl p-5">
+                    <h2 class="text-sm font-medium mb-5 flex items-center gap-2"><i data-lucide="settings-2" class="w-4 h-4 opacity-70"></i> Parameters</h2>
+                    <div class="space-y-5">
+                        
+                        <label id="csv-dropzone" for="csv-upload" class="border-2 border-dashed border-gray-500/30 rounded-xl p-4 text-center cursor-pointer hover:border-[#17c964] hover:bg-[#17c964]/5 transition-all bg-gray-500/5 group block relative">
+                            <i data-lucide="upload-cloud" class="w-5 h-5 mx-auto opacity-50 mb-2 group-hover:text-[#17c964] transition-colors pointer-events-none"></i>
+                            <p class="text-[10px] opacity-70 font-mono uppercase tracking-wider pointer-events-none" id="dropzone-text">Drop Custom CSV or Click</p>
+                            <input type="file" id="csv-upload" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        </label>
+
+                        <div>
+                            <label class="block text-[11px] font-medium opacity-60 uppercase tracking-wider mb-1.5">Dataset Size (n)</label>
+                            <input type="number" id="numItems" value="25" min="1" max="100000" class="w-full rounded-md p-2.5 text-sm tabular-nums font-mono">
+                            <p id="guardrail-warning" class="text-[10px] text-yellow-500 mt-1.5 hidden font-medium">⚠️ Large payload detected.</p>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium opacity-60 uppercase tracking-wider mb-1.5">Distribution</label>
+                            <select id="datasetKind" class="w-full rounded-md p-2.5 text-sm appearance-none cursor-pointer">
+                                <option value="uncorrelated">Random / Uncorrelated</option>
+                                <option value="weak">Weakly Correlated</option>
+                                <option value="strong">Strongly Correlated</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2"><label class="block text-[11px] font-medium opacity-60 uppercase tracking-wider">Capacity</label><span class="text-xs font-mono tabular-nums" id="capDisplay">50%</span></div>
+                            <input type="range" id="capacityFrac" min="0.1" max="0.9" step="0.1" value="0.5" class="w-full">
+                        </div>
+                        <div class="pt-2 space-y-2">
+                            <button id="runBtn" onclick="toggleSimulation()" class="w-full primary-btn font-medium text-sm py-2.5 rounded-md transition-all flex justify-between items-center px-4">
+                                <span class="flex items-center gap-2"><i data-lucide="play" class="w-4 h-4 fill-current" id="btnIcon"></i> <span id="btnText">Execute</span></span>
+                                <kbd class="kbd-hint hidden md:inline-block" id="runKbd">⌘ ↵</kbd>
+                            </button>
+                            <button id="exportBtn" onclick="exportCSV()" disabled class="w-full secondary-btn font-medium text-sm py-2.5 rounded-md transition-all flex justify-between items-center px-4 opacity-50 cursor-not-allowed">
+                                <span class="flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Export CSV</span>
+                                <kbd class="kbd-hint hidden md:inline-block" id="exportKbd">⌘ ⇧ E</kbd>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel rounded-xl flex flex-col flex-1 min-h-[200px] overflow-hidden border-gray-500/20 relative">
+                    <div class="bg-[#050505] px-4 py-2 border-b border-gray-500/20 flex items-center justify-between z-10">
+                        <span class="text-[10px] font-mono uppercase opacity-60 tracking-wider flex items-center gap-2">Worker Logs <span id="progress-percent" class="text-[#17c964] hidden">0%</span></span>
+                        <div class="flex gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-[#f31260]"></div><div class="w-2.5 h-2.5 rounded-full bg-[#f5a524]"></div><div class="w-2.5 h-2.5 rounded-full bg-[#17c964]"></div></div>
+                    </div>
+                    <div class="w-full h-[2px] bg-gray-500/20 z-10"><div id="progress-bar" class="h-full bg-[#17c964] w-0 transition-all duration-75"></div></div>
+                    <div id="terminal-output" class="p-4 flex-1 bg-[#0A0A0A] overflow-y-auto text-[11px] font-mono leading-relaxed space-y-1.5 custom-scrollbar text-[#888]">
+                        <div>> System initialized. Ready.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="xl:col-span-9 space-y-6">
+                <!-- Concept Visualizations: Top Analytics Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="panel rounded-xl p-5 lg:col-span-2 flex flex-col justify-center">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-[11px] font-medium opacity-60 uppercase tracking-wider">Execution Time (ms)</h3>
+                            <button onclick="downloadChart('timeChart', 'Execution_Times')" class="opacity-50 hover:opacity-100 transition-opacity" title="Save PNG"><i data-lucide="camera" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                        <div class="h-32 relative"><canvas id="timeChart"></canvas></div>
+                    </div>
+                    <div class="panel rounded-xl p-5 lg:col-span-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-[11px] font-medium opacity-60 uppercase tracking-wider">Trade-Offs</h3>
+                            <button onclick="downloadChart('radarChart', 'Algorithm_Radar')" class="opacity-50 hover:opacity-100 transition-opacity" title="Save PNG"><i data-lucide="camera" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                        <div class="h-36 relative flex justify-center"><canvas id="radarChart"></canvas></div>
+                    </div>
+                    <div class="panel rounded-xl p-5 lg:col-span-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-[11px] font-medium opacity-60 uppercase tracking-wider">Capacity</h3>
+                            <button onclick="downloadChart('donutChart', 'Capacity_Utilization')" class="opacity-50 hover:opacity-100 transition-opacity" title="Save PNG"><i data-lucide="camera" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                        <div class="h-36 relative flex justify-center"><canvas id="donutChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end mb-2 mt-8">
+                    <h2 class="text-sm font-medium flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 opacity-70"></i> Paradigm Performance Matrix</h2>
+                    <div class="flex gap-4 items-center">
+                        <button onclick="downloadChart('scatterChart', 'Dataset_Topography')" class="text-[10px] font-mono opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1"><i data-lucide="camera" class="w-3 h-3"></i> Topography Snapshot</button>
+                        <div class="flex bg-gray-500/10 rounded-lg p-1 border border-gray-500/20">
+                            <button onclick="setViewMode('grid')" id="btn-grid" class="p-1.5 rounded text-white bg-gray-500/20 shadow-sm transition-all focus:outline-none"><i data-lucide="grid" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="setViewMode('list')" id="btn-list" class="p-1.5 rounded opacity-50 hover:opacity-100 transition-all focus:outline-none"><i data-lucide="list" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="resultsArea" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 transition-all">
+                    <div class="col-span-full py-16 text-center border border-dashed border-gray-500/30 rounded-xl opacity-60"><p class="text-sm font-mono">Awaiting execution prompt...</p></div>
+                </div>
+
+                <!-- Telemetry & Scaling Trend -->
+                <div class="panel rounded-xl p-5 overflow-hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <h2 class="text-sm font-medium mb-4 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 opacity-70"></i> Execution Ledger</h2>
+                        <div class="overflow-x-auto max-h-[250px] custom-scrollbar">
+                            <table class="w-full text-left text-xs tabular-nums font-mono border-collapse" id="telemetryTable">
+                                <thead><tr class="border-b border-gray-500/20 opacity-70 uppercase tracking-wider"><th class="pb-2 font-medium">Run ID</th><th class="pb-2 font-medium">Size (n)</th><th class="pb-2 font-medium">Optimal Paradigm</th><th class="pb-2 font-medium">Value</th><th class="pb-2 font-medium">Time (ms)</th></tr></thead>
+                                <tbody id="telemetryBody" class="divide-y divide-gray-500/10">
+                                    <tr id="telemetry-empty"><td colspan="5" class="py-4 text-center opacity-50 font-sans">No history.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-500/20 pt-4 lg:pt-0 lg:pl-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-sm font-medium flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 opacity-70"></i> Scaling Trend</h2>
+                            <button onclick="downloadChart('lineChart', 'Scaling_Trend')" class="opacity-50 hover:opacity-100 transition-opacity" title="Save PNG"><i data-lucide="camera" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                        <div class="h-40 relative"><canvas id="lineChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <div class="hidden"><canvas id="scatterChart"></canvas></div>
+    </div>
+
+    <template id="card-template">
+        <button class="panel rounded-xl p-5 animate-fade-up flex flex-col justify-between h-full relative overflow-hidden cursor-pointer group hover:border-[#888] transition-colors focus:outline-none text-left w-full" aria-label="View Details" onclick="openDrawer(this.dataset.index)">
+            <div class="absolute top-0 right-0 px-3 py-1 bg-[#17c964] text-black text-[9px] font-bold uppercase tracking-wider rounded-bl-lg hidden recommend-badge">Optimal</div>
+            <div class="list-layout-wrapper w-full">
+                <div class="list-col-1">
+                    <div class="flex justify-between items-start mb-1"><h3 class="font-medium text-sm card-title group-hover:text-blue-400 transition-colors"></h3><div class="status-dot"></div></div>
+                    <p class="text-[11px] opacity-60 uppercase tracking-wider mb-3 font-mono inline-block card-paradigm" data-tooltip=""></p>
+                    <p class="text-xs opacity-70 mb-4 min-h-[32px] card-note"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-px inner-panel rounded-lg overflow-hidden mb-5 list-col-2">
+                    <div class="bg-transparent p-3 text-center"><span class="block text-[10px] uppercase opacity-60 mb-1">Value</span><span class="font-mono tabular-nums text-sm font-semibold card-value"></span></div>
+                    <div class="bg-transparent p-3 text-center"><span class="block text-[10px] uppercase opacity-60 mb-1">Gap</span><span class="font-mono tabular-nums text-sm font-semibold card-gap"></span></div>
+                </div>
+                <div class="list-col-3 w-full">
+                    <div class="flex justify-between items-end text-[10px] mb-2 font-mono tabular-nums"><span class="opacity-60">Load</span><span class="card-load"><span class="opacity-60"></span></span></div>
+                    <div class="w-full inner-panel rounded-full h-1 overflow-hidden"><div class="h-1 rounded-full capacity-bar w-0"></div></div>
+                </div>
+            </div>
+        </button>
+    </template>
+
+    <script src="app.js"></script>
+    <script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }</script>
+</body>
+</html>

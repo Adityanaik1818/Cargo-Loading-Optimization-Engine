@@ -1,0 +1,16 @@
+{
+  "name": "Optimization Engine | Nexus",
+  "short_name": "Nexus Opt",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Enterprise Multi-Threaded 0/1 Knapsack Benchmarking Tool",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2111/2111432.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
